@@ -2,21 +2,21 @@ use super::handler::AppState;
 use crate::store::Store;
 use std::net::SocketAddr;
 
-/// Running proxy server handle; dropping it does not stop the server — call `stop`.
+/// Handle for a running proxy server. Dropping it does not stop the server; call `stop`.
 pub struct ProxyHandle {
     pub addr: SocketAddr,
     task: tokio::task::JoinHandle<()>,
 }
 
 impl ProxyHandle {
-    /// Abort the accept loop. In-flight requests may be cut short; the process
-    /// is a desktop app, so a hard stop on quit is acceptable.
+    /// Stop accepting requests. In-flight requests may end early because the
+    /// desktop app stops the server immediately when it quits.
     pub fn stop(self) {
         self.task.abort();
     }
 }
 
-/// Bind and run the proxy in a background task on the current runtime.
+/// Bind the proxy and run it in a background task on the current runtime.
 pub async fn spawn(
     listen_addr: &str,
     upstream_base: String,
@@ -38,7 +38,7 @@ pub async fn spawn(
         }
     });
 
-    // Verify the listener actually accepts connections before returning.
+    // Check that the listener accepts connections before returning.
     match tokio::net::TcpStream::connect(bound).await {
         Ok(probe) => drop(probe),
         Err(e) => tracing::warn!(error = %e, "listener probe failed (may still be starting)"),

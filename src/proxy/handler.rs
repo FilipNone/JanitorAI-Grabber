@@ -11,7 +11,7 @@ pub struct AppState {
     pub store: Store,
 }
 
-/// Catch-all: forward any request to upstream, tee both halves, return response untouched.
+/// Forward each request to the upstream, capture both halves, and return its response unchanged.
 pub async fn forward(
     State(state): State<AppState>,
     method: axum::http::Method,
@@ -33,7 +33,7 @@ pub async fn forward(
         }
     };
 
-    // Capture request (headers recorded; UI redacts secret ones).
+    // Store the request headers; the UI redacts secret values.
     let req_headers: Vec<(String, String)> = headers
         .iter()
         .map(|(k, v)| {
@@ -60,7 +60,7 @@ pub async fn forward(
         tracing::error!(error = %e, "failed to persist request capture");
     }
 
-    // Build upstream request.
+    // Build the upstream request.
     let upstream_url = format!("{}{}", state.upstream_base.trim_end_matches('/'), path);
     let client = match reqwest::Client::builder().build() {
         Ok(c) => c,
@@ -76,7 +76,7 @@ pub async fn forward(
         reqwest::Method::from_bytes(method.as_str().as_bytes()).unwrap_or(reqwest::Method::GET);
     let mut out = client.request(upstream_method, &upstream_url);
     for (k, v) in &req_headers {
-        // Skip hop-by-hop headers reqwest manages itself.
+        // Reqwest manages hop-by-hop headers itself.
         let lk = k.to_ascii_lowercase();
         if matches!(
             lk.as_str(),
@@ -128,7 +128,7 @@ pub async fn forward(
     };
     let duration_ms = started.elapsed().as_millis() as u64;
 
-    // Capture response.
+    // Store the upstream response.
     let resp_body_text = String::from_utf8_lossy(&resp_bytes).to_string();
     let resp_rec = CaptureRecord::response(
         &path,
@@ -141,7 +141,7 @@ pub async fn forward(
         tracing::error!(error = %e, "failed to persist response capture");
     }
 
-    // Replay response as-is to the caller.
+    // Return the response to the caller without changing its body.
     let mut out_resp =
         Response::builder().status(StatusCode::from_u16(status).unwrap_or(StatusCode::BAD_GATEWAY));
     for (k, v) in &resp_headers {
@@ -164,7 +164,7 @@ pub async fn forward(
         .unwrap_or_else(|_| (StatusCode::BAD_GATEWAY, "replay failed").into_response())
 }
 
-const MAX_BODY: usize = 64 * 1024 * 1024; // 64 MiB
+const MAX_BODY: usize = 64 * 1024 * 1024; // 64 MiB maximum
 
 #[cfg(test)]
 mod tests {
@@ -175,7 +175,7 @@ mod tests {
     async fn test_store() -> (Store, tempfile::TempDir) {
         let tmp = tempfile::tempdir().unwrap();
         let store = Store::open(&tmp.path().join("t.db")).await.unwrap();
-        (store, tmp) // keep TempDir alive for the whole test
+        (store, tmp) // Keep TempDir alive for the whole test.
     }
 
     #[tokio::test]
@@ -210,7 +210,7 @@ mod tests {
         assert_eq!(resp.status(), 200);
         assert_eq!(resp.text().await.unwrap(), r#"{"ok":true}"#);
 
-        // Captures stored: request + response.
+        // The store should contain one request and one response.
         let caps = state.store.list_latest(10).await.unwrap();
         assert_eq!(caps.len(), 2);
         assert!(caps

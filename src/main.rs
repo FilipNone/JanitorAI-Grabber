@@ -1,4 +1,4 @@
-//! JanitorAI Grabber — local LLM proxy that captures chat-completion traffic.
+//! JanitorAI Grabber, a local LLM proxy that captures chat-completion traffic.
 
 mod config;
 mod proxy;
@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
     let store = rt.block_on(Store::open(&db_path))?;
     tracing::info!(db = %db_path.display(), "store ready");
 
-    // Keep the runtime alive while the UI runs on the main thread.
+    // Keep Tokio alive while the UI runs on the main thread.
     let ui_rt = rt.handle().clone();
     let result = ui::run(cfg, store, ui_rt);
     rt.shutdown_timeout(std::time::Duration::from_secs(2));

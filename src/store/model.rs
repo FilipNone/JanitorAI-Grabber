@@ -11,11 +11,11 @@ pub enum Direction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SecretFlag {
     Clean,
-    /// Contains authorization/session material — UI must redact by default.
+    /// Contains authorization or session material. The UI redacts it by default.
     Secret,
 }
 
-/// One captured HTTP half (request or response) of the proxy exchange.
+/// One captured HTTP request or response from a proxy exchange.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaptureRecord {
     pub id: Uuid,
@@ -24,11 +24,11 @@ pub struct CaptureRecord {
     pub method: String,
     pub path: String,
     pub status: Option<u16>,
-    /// Header names only at this level; values live in `headers`.
+    /// Header names for this record; values are stored in `headers`.
     pub headers: Vec<(String, String)>,
     pub secret: SecretFlag,
     pub body: Option<String>,
-    /// Milliseconds spent on the upstream call.
+    /// Time spent on the upstream call, in milliseconds.
     pub duration_ms: Option<u64>,
 }
 
@@ -74,7 +74,7 @@ impl CaptureRecord {
         }
     }
 
-    /// Header names that always carry credentials.
+    /// Header names that carry credentials.
     pub fn is_secret_header(name: &str) -> bool {
         let n = name.to_ascii_lowercase();
         n == "authorization"
@@ -85,7 +85,7 @@ impl CaptureRecord {
             || n == "x-janitor-ai-key"
     }
 
-    /// Header names whose values must not be shown by default in the UI.
+    /// Header names whose values the UI hides by default.
     pub fn redacted_headers(&self) -> Vec<(String, String)> {
         self.headers
             .iter()
@@ -99,7 +99,7 @@ impl CaptureRecord {
             .collect()
     }
 
-    /// Pretty-print the body if it is valid JSON.
+    /// Pretty-print the body when it contains valid JSON.
     pub fn body_pretty(&self) -> Option<String> {
         let raw = self.body.as_ref()?;
         serde_json::from_str::<serde_json::Value>(raw)
@@ -126,7 +126,7 @@ mod tests {
         let shown = rec.redacted_headers();
         assert_eq!(shown[0].1, "«redacted»");
         assert_eq!(shown[1].1, "application/json");
-        // Raw value never in pretty output.
+        // Do not include the raw value in pretty output.
         let pretty = serde_json::to_string(&rec.redacted_headers()).unwrap();
         assert!(!pretty.contains("sk-supersecret"));
     }

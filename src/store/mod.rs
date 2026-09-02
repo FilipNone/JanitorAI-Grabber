@@ -1,4 +1,4 @@
-//! In-memory + on-disk capture store.
+//! Capture store backed by memory and disk.
 
 pub mod export;
 pub mod model;

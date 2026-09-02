@@ -1,4 +1,4 @@
-//! SQLite-backed capture store (sqlx, runtime-tokio).
+//! SQLite-backed capture store using sqlx and the Tokio runtime.
 
 use super::model::{CaptureRecord, Direction, SecretFlag};
 use std::path::Path;

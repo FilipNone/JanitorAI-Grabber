@@ -1,4 +1,4 @@
-//! Integration test: proxy forwards a canned chat-completion exchange and stores both halves.
+//! Integration test that forwards a canned chat-completion exchange and stores both halves.
 
 use tempfile::tempdir;
 use wiremock::matchers::{method, path};

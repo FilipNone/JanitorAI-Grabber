@@ -92,10 +92,7 @@ impl GrabberApp {
                         ok += 1;
                     }
                 }
-                self.status_msg = format!(
-                    "Exported {ok} records to {}",
-                    w.path().display()
-                );
+                self.status_msg = format!("Exported {ok} records to {}", w.path().display());
             }
             Err(e) => self.status_msg = format!("Export failed: {e}"),
         }
@@ -180,7 +177,10 @@ impl eframe::App for GrabberApp {
                                 crate::store::Direction::Response => "← response",
                             });
                             if rec.secret == crate::store::SecretFlag::Secret {
-                                ui.label(egui::RichText::new("contains secrets").color(egui::Color32::YELLOW));
+                                ui.label(
+                                    egui::RichText::new("contains secrets")
+                                        .color(egui::Color32::YELLOW),
+                                );
                             }
                         });
 
@@ -216,7 +216,7 @@ impl eframe::App for GrabberApp {
     }
 }
 
-/// Launch the UI. Returns an error with a clear message when no display is available.
+/// Launch the UI and report a clear error when no display is available.
 pub fn run(cfg: Config, store: Store, rt: tokio::runtime::Handle) -> anyhow::Result<()> {
     let native = eframe::NativeOptions::default();
     eframe::run_native(
@@ -231,5 +231,5 @@ pub fn run(cfg: Config, store: Store, rt: tokio::runtime::Handle) -> anyhow::Res
 }
 
 fn egui_extras_install(_cc: &eframe::CreationContext<'_>) {
-    // Hook for fonts/theme setup.
+    // Set up fonts and the theme here when needed.
 }

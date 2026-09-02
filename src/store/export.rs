@@ -4,7 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-/// Append-only JSONL sink. One line = one `CaptureRecord`.
+/// Append-only JSONL sink with one `CaptureRecord` per line.
 pub struct JsonlWriter {
     path: PathBuf,
     file: Mutex<File>,

@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-/// Runtime configuration. Loadable from `config.local.toml` (gitignored).
+/// Runtime settings loaded from `config.local.toml` (gitignored).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// Local proxy bind address. Loopback only by default.
+    /// Address for the local proxy. Defaults to loopback.
     pub listen_addr: String,
-    /// Upstream base URL that /v1/* traffic is forwarded to.
+    /// Upstream base URL for `/v1/*` traffic.
     pub upstream_base_url: String,
-    /// Where captures are stored (defaults to OS user-data dir).
+    /// Directory for captures. Defaults to the OS user-data directory.
     pub data_dir: Option<String>,
 }
 
@@ -22,8 +22,8 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Load from `config.local.toml` if present, else defaults.
-    /// Tries: explicit dir override > repo dir (local only) > user config dir.
+    /// Load `config.local.toml` when it exists; otherwise use the defaults.
+    /// Search an explicit directory, then the repo directory, then the user config directory.
     pub fn load() -> Self {
         for candidate in Self::candidate_paths() {
             if let Ok(text) = std::fs::read_to_string(&candidate) {
@@ -49,7 +49,7 @@ impl Config {
         paths
     }
 
-    /// Where captures live. Never inside the repo tree.
+    /// Directory that stores captures. It never uses the repo tree.
     pub fn data_dir(&self) -> std::path::PathBuf {
         if let Some(custom) = &self.data_dir {
             return std::path::PathBuf::from(custom);

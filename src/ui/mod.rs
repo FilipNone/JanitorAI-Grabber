@@ -1,4 +1,4 @@
-//! egui/eframe desktop UI.
+//! Desktop UI built with egui and eframe.
 
 pub mod app;
 
