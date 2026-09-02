@@ -1,0 +1,38 @@
+# --- Local-only: never commit these ---
+# Vendored Rust docs (local reference)
+docs/
+
+# Build artifacts
+/target
+
+# Captures and runtime data — never leave the machine
+captures/
+*.capture
+*.jsonl
+!tests/fixtures/*.jsonl
+data/
+
+# Local config / secrets
+.env
+.env.*
+config.local.*
+*.local.toml
+*.key
+*.token
+
+# Development scratch
+*.log
+*.tmp
+*.bak
+/.vscode/
+/.idea/
+*.swp
+.DS_Store
+
+# Cargo
+**/*.rs.bk
+Cargo.lock.orig
+
+# Windows junk
+Thumbs.db
+desktop.ini
