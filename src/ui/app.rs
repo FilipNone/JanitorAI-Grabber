@@ -22,6 +22,7 @@ pub struct GrabberApp {
     selected: Option<uuid::Uuid>,
     status_msg: String,
     export_path: PathBuf,
+    last_refresh: std::time::Instant,
 }
 
 impl GrabberApp {
@@ -36,12 +37,14 @@ impl GrabberApp {
             selected: None,
             status_msg: "Proxy stopped".into(),
             export_path,
+            last_refresh: std::time::Instant::now(),
         }
     }
 
     fn start_proxy(&mut self) {
         let upstream = self.cfg.upstream_base_url.clone();
         let listen = self.cfg.listen_addr.clone();
+        let mode = self.cfg.mode;
         let store = self.store.clone();
         self.status_msg = "Starting…".into();
 
@@ -50,7 +53,7 @@ impl GrabberApp {
 
         let slot = handle_slot.clone();
         self.rt.spawn(async move {
-            match crate::proxy::server::spawn(&listen, upstream, store).await {
+            match crate::proxy::server::spawn(&listen, mode, upstream, store).await {
                 Ok(h) => {
                     tracing::info!(addr = %h.addr, "proxy started");
                     *slot.lock().await = Some(h);
@@ -59,7 +62,7 @@ impl GrabberApp {
             }
         });
         self.state = ProxyState::Running(handle_slot);
-        self.status_msg = format!("Running on {}", self.cfg.listen_addr);
+        self.status_msg = format!("Running on {} ({})", self.cfg.listen_addr, mode.label());
     }
 
     fn stop_proxy(&mut self) {
@@ -81,6 +84,7 @@ impl GrabberApp {
             Ok(list) => self.captures = list,
             Err(e) => tracing::error!(error = %e, "capture refresh failed"),
         }
+        self.last_refresh = std::time::Instant::now();
     }
 
     fn export_jsonl(&mut self) {
@@ -101,6 +105,14 @@ impl GrabberApp {
 
 impl eframe::App for GrabberApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Live refresh: poll the store once a second while the endpoint runs.
+        if matches!(self.state, ProxyState::Running(_)) {
+            ctx.request_repaint_after(std::time::Duration::from_secs(1));
+            if self.last_refresh.elapsed() >= std::time::Duration::from_secs(1) {
+                self.refresh_captures();
+            }
+        }
+
         egui::TopBottomPanel::top("status").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let running = matches!(self.state, ProxyState::Running(_));
@@ -197,6 +209,11 @@ impl eframe::App for GrabberApp {
 
                         ui.separator();
                         ui.strong("Body");
+                        if ui.button("Copy body").clicked() {
+                            let text = rec.body_pretty().unwrap_or_default();
+                            ctx.copy_text(text);
+                            self.status_msg = "Body copied to clipboard".into();
+                        }
                         egui::ScrollArea::vertical()
                             .id_salt("capture-body")
                             .show(ui, |ui| {

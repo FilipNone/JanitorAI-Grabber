@@ -1,4 +1,5 @@
 use super::handler::AppState;
+use crate::config::Mode;
 use crate::store::Store;
 use std::net::SocketAddr;
 
@@ -19,12 +20,14 @@ impl ProxyHandle {
 /// Bind the proxy and run it in a background task on the current runtime.
 pub async fn spawn(
     listen_addr: &str,
+    mode: Mode,
     upstream_base: String,
     store: Store,
 ) -> anyhow::Result<ProxyHandle> {
     let addr: SocketAddr = listen_addr.parse()?;
     let state = AppState {
         upstream_base,
+        mode,
         store,
     };
 
@@ -57,9 +60,14 @@ mod tests {
     async fn binds_ephemeral_and_shuts_down() {
         let tmp = tempdir().unwrap();
         let store = Store::open(&tmp.path().join("t.db")).await.unwrap();
-        let handle = spawn("127.0.0.1:0", "http://127.0.0.1:1".into(), store)
-            .await
-            .unwrap();
+        let handle = spawn(
+            "127.0.0.1:0",
+            Mode::Forward,
+            "http://127.0.0.1:1".into(),
+            store,
+        )
+        .await
+        .unwrap();
         assert_ne!(handle.addr.port(), 0);
         handle.stop();
     }

@@ -4,4 +4,4 @@ pub mod config;
 pub mod proxy;
 pub mod store;
 
-pub use config::Config;
+pub use config::{Config, Mode};

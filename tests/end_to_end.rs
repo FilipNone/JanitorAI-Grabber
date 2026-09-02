@@ -1,12 +1,111 @@
-//! Integration test that forwards a canned chat-completion exchange and stores both halves.
+//! Integration tests:
+//! 1. capture mode — the fake endpoint stores the chat-completion request and
+//!    replies with a stub OpenAI success (JanitorAI proxy-preset flow),
+//! 2. forward mode — a canned chat-completion exchange is forwarded upstream
+//!    and stored on both sides, byte-identical response returned.
 
+use janitorai_grabber::config::Mode;
+use janitorai_grabber::store::{Direction, SecretFlag, Store};
 use tempfile::tempdir;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-// The crate needs a lib target for integration tests to import internals.
-// See src/lib.rs.
-use janitorai_grabber::store::Store;
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn capture_endpoint_stores_and_replies() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_test_writer()
+        .try_init();
+
+    let tmp = tempdir().unwrap();
+    let store = Store::open(&tmp.path().join("t.db")).await.unwrap();
+
+    let handle = janitorai_grabber::proxy::server::spawn(
+        "127.0.0.1:0",
+        Mode::Capture,
+        String::new(),
+        store.clone(),
+    )
+    .await
+    .unwrap();
+    let url = format!("http://{}/v1/chat/completions", handle.addr);
+
+    let client = reqwest::Client::new();
+    let mut resp = None;
+    for _ in 0..20 {
+        match client
+            .post(&url)
+            .header("authorization", "Bearer fake-key")
+            .json(&serde_json::json!({
+                "model": "gpt-x",
+                "messages": [
+                    {"role": "system", "content": "<Char's Persona> card </Char's Persona>"},
+                    {"role": "user", "content": "hello from janitor"}
+                ]
+            }))
+            .send()
+            .await
+        {
+            Ok(r) => {
+                resp = Some(r);
+                break;
+            }
+            Err(_) => tokio::time::sleep(std::time::Duration::from_millis(50)).await,
+        }
+    }
+    let resp = resp.expect("capture endpoint never became reachable");
+
+    // Success stub returned so the chat UI sees the message as delivered.
+    assert_eq!(resp.status(), 200);
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["object"], "chat.completion");
+    assert_eq!(body["choices"][0]["message"]["role"], "assistant");
+    assert_eq!(
+        body["choices"][0]["message"]["content"],
+        "hello from janitor"
+    );
+
+    // Stored request contains the full prompt; secrets flagged.
+    let caps = store.list_latest(10).await.unwrap();
+    let req = caps
+        .iter()
+        .find(|c| c.direction == Direction::Request)
+        .expect("no request capture stored");
+    assert!(req.body.as_ref().unwrap().contains("hello from janitor"));
+    assert!(req.body.as_ref().unwrap().contains("Char's Persona"));
+    assert_eq!(req.secret, SecretFlag::Secret);
+
+    // A stub response record was stored too.
+    let resp_rec = caps
+        .iter()
+        .find(|c| c.direction == Direction::Response)
+        .expect("no response capture stored");
+    assert_eq!(resp_rec.status, Some(200));
+    assert!(resp_rec.body.as_ref().unwrap().contains("chat.completion"));
+
+    handle.stop();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn capture_rejects_non_json_body() {
+    let tmp = tempdir().unwrap();
+    let store = Store::open(&tmp.path().join("t.db")).await.unwrap();
+    let handle =
+        janitorai_grabber::proxy::server::spawn("127.0.0.1:0", Mode::Capture, String::new(), store)
+            .await
+            .unwrap();
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{}/v1/chat/completions", handle.addr))
+        .body("this is not json")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 400);
+
+    handle.stop();
+}
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn end_to_end_forward_and_capture() {
@@ -32,10 +131,14 @@ async fn end_to_end_forward_and_capture() {
     let store = Store::open(&db_path).await.unwrap();
     eprintln!("db at {}", db_path.display());
 
-    let handle =
-        janitorai_grabber::proxy::server::spawn("127.0.0.1:0", upstream.uri(), store.clone())
-            .await
-            .unwrap();
+    let handle = janitorai_grabber::proxy::server::spawn(
+        "127.0.0.1:0",
+        Mode::Forward,
+        upstream.uri(),
+        store.clone(),
+    )
+    .await
+    .unwrap();
     eprintln!("proxy at {}", handle.addr);
     let url = format!("http://{}/v1/chat/completions", handle.addr);
 

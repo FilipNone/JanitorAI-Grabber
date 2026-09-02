@@ -1,21 +1,50 @@
 use serde::{Deserialize, Serialize};
 
+/// How the local endpoint behaves for incoming requests.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum Mode {
+    /// Capture-only fake endpoint: store the request and reply with a stub
+    /// success so JanitorAI sees the message as delivered. Nothing is forwarded.
+    #[default]
+    Capture,
+    /// Reverse-proxy mode: forward to the configured upstream unchanged.
+    Forward,
+}
+
+impl Mode {
+    pub fn label(self) -> &'static str {
+        match self {
+            Mode::Capture => "capture",
+            Mode::Forward => "forward",
+        }
+    }
+}
+
 /// Runtime settings loaded from `config.local.toml` (gitignored).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     /// Address for the local proxy. Defaults to loopback.
     pub listen_addr: String,
-    /// Upstream base URL for `/v1/*` traffic.
+    /// Upstream base URL for `/v1/*` traffic (forward mode only).
+    #[serde(default = "default_upstream")]
     pub upstream_base_url: String,
+    /// Endpoint behavior: capture-only (default) or forward.
+    #[serde(default)]
+    pub mode: Mode,
     /// Directory for captures. Defaults to the OS user-data directory.
     pub data_dir: Option<String>,
+}
+
+fn default_upstream() -> String {
+    "https://api.openai.com".to_string()
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             listen_addr: "127.0.0.1:8817".to_string(),
-            upstream_base_url: "https://api.openai.com".to_string(),
+            upstream_base_url: default_upstream(),
+            mode: Mode::Capture,
             data_dir: None,
         }
     }

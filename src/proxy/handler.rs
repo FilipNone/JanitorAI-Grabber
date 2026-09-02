@@ -1,3 +1,4 @@
+use crate::config::Mode;
 use crate::store::{CaptureRecord, Store};
 use axum::body::Body;
 use axum::extract::State;
@@ -8,6 +9,7 @@ use std::time::Instant;
 #[derive(Clone)]
 pub struct AppState {
     pub upstream_base: String,
+    pub mode: Mode,
     pub store: Store,
 }
 
@@ -191,6 +193,7 @@ mod tests {
         let (store, _guard) = test_store().await;
         let state = AppState {
             upstream_base: upstream.uri(),
+            mode: crate::config::Mode::Forward,
             store,
         };
         let router = crate::proxy::router::build_router(state.clone());
