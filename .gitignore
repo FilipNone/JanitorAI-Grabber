@@ -2,6 +2,7 @@
 # Vendored Rust docs (local reference)
 docs/
 design-rules/
+reference/
 
 # Build artifacts
 /target
