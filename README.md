@@ -50,6 +50,21 @@ upstream_base_url = "https://api.openai.com"
 
 Captures live in a SQLite database under your user data directory, never in the repo.
 
+## Browser blockers (uBlock Origin)
+
+Filter lists like uBlock's **Block LAN** block requests from public sites to
+`127.0.0.1`, which silently kills the connection (the chat shows a CORS error).
+The app serves its own exception list so you only configure this once:
+
+1. In uBlock Origin: dashboard → **Filter lists** → bottom of the page → tick
+   **Import…** and paste
+   <https://raw.githubusercontent.com/FilipNone/JanitorAI-Grabber/main/ublock.txt>
+   → **Apply changes**.
+2. Reload the JanitorAI chat page and send a message.
+
+uBlock re-fetches the list on its normal schedule, so nothing else is needed.
+If the port is changed in `config.local.toml`, update the imported URL to match.
+
 ## Development
 
 ```bash

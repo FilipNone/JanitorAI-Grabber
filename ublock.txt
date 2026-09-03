@@ -1,0 +1,2 @@
+! JanitorAI Grabber - allow janitorai.com to reach the local proxy
+@@||127.0.0.1:8817^$domain=janitorai.com
