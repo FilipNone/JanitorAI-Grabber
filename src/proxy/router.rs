@@ -8,10 +8,10 @@ use axum::routing::{any, get, post};
 use axum::Router;
 use tower_http::cors::CorsLayer;
 
-/// uBlock Origin's "Block LAN" filter list blocks requests from public sites
-/// (janitorai.com) to loopback addresses like ours. Serving an exception list
-/// lets the user subscribe once in uBlock's dashboard; uBlock re-fetches it
-/// automatically afterwards, so no further browser interaction is needed.
+/// uBlock Origin's "Block LAN" list blocks requests from public sites to
+/// loopback addresses, which kills the connection to this proxy. Serving an
+/// exception list means the user imports the URL once in uBlock's dashboard;
+/// uBlock re-fetches it on its own schedule after that.
 const UBLOCK_FILTER: &str = concat!(
     "! JanitorAI Grabber - allow janitorai.com to reach the local proxy\n",
     "@@||127.0.0.1:8817^$domain=janitorai.com\n",
@@ -34,7 +34,7 @@ pub fn build_router(state: AppState) -> Router {
     );
 
     // JanitorAI's page calls this endpoint from the browser, so the browser
-    // demands CORS headers on the response (and preflight OPTIONS replies).
+    // requires CORS headers on the response and on preflight OPTIONS replies.
     // `authorization` must be listed explicitly: the `*` wildcard no longer
     // covers it in Chrome (deprecated per fetch spec, enforced from milestone
     // 97). The private-network header answers Chrome's Local Network Access

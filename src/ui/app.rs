@@ -200,7 +200,7 @@ impl eframe::App for GrabberApp {
 
                 if self.captures.is_empty() {
                     // Empty state with the full JanitorAI setup steps inline,
-                    // so the user does not need to open the README.
+                    // so the user does not have to open the README.
                     ui.add_space(space::L);
                     egui::Frame::default()
                         .fill(p.surface_high)
@@ -214,51 +214,32 @@ impl eframe::App for GrabberApp {
                                     .strong(),
                             );
                             ui.add_space(space::XS);
-                            ui.label(
-                                egui::RichText::new(
-                                    "1. Press Start above. The endpoint listens on 127.0.0.1:8817.",
-                                )
-                                .color(p.on_surface),
-                            );
-                            ui.label(
-                                egui::RichText::new(
-                                    "2. Open JanitorAI.com, open your chat, then the API settings (the slider icon in the top bar).",
-                                )
-                                .color(p.on_surface),
-                            );
-                            ui.label(
-                                egui::RichText::new(
-                                    "3. As API choose \"Custom Proxy (OpenAI-compatible)\".",
-                                )
-                                .color(p.on_surface),
-                            );
-                            ui.label(
-                                egui::RichText::new(
-                                    "4. Proxy URL: http://127.0.0.1:8817/v1",
-                                )
-                                .color(p.on_surface),
-                            );
-                            ui.label(
-                                egui::RichText::new(
-                                    "   Proxy password: anything, for example grabber.",
-                                )
-                                .color(p.on_surface_muted),
-                            );
-                            ui.label(
-                                egui::RichText::new(
-                                    "5. Save, then send any message in the chat. It appears here.",
-                                )
-                                .color(p.on_surface),
-                            );
+                            ui.label(egui::RichText::new(
+                                "1. Press Start above. The endpoint listens on 127.0.0.1:8817.",
+                            ).color(p.on_surface));
+                            ui.label(egui::RichText::new(
+                                "2. Open JanitorAI.com, open your chat, then the API settings (the slider icon in the top bar).",
+                            ).color(p.on_surface));
+                            ui.label(egui::RichText::new(
+                                "3. As API choose \"Custom Proxy (OpenAI-compatible)\".",
+                            ).color(p.on_surface));
+                            ui.label(egui::RichText::new(
+                                "4. Proxy URL: http://127.0.0.1:8817/v1/chat/completions (the site appends the path itself if you paste /v1, but the full URL always works).",
+                            ).color(p.on_surface));
+                            ui.label(egui::RichText::new(
+                                "   Proxy password: anything, for example grabber.",
+                            ).color(p.on_surface_muted));
+                            ui.label(egui::RichText::new(
+                                "5. Save, then RELOAD the chat page once (the site caches the old proxy choice).",
+                            ).color(p.on_surface));
+                            ui.label(egui::RichText::new(
+                                "6. Send any message in the chat. It appears here.",
+                            ).color(p.on_surface));
                             ui.add_space(space::S);
-                            ui.label(
-                                egui::RichText::new(
-                                    "Any API key works: the app stores the request and replies with a \
-                                     stub success, contacting nothing outside your machine.",
-                                )
-                                .text_style(egui::TextStyle::Name("Caption".into()))
-                                .color(p.on_surface_muted),
-                            );
+                            ui.label(egui::RichText::new(
+                                "Chrome asks for permission to reach your local network the first time: allow it. If a send fails, check that the dot above is green and reload the chat page.",
+                            ).text_style(egui::TextStyle::Name("Caption".into()))
+                            .color(p.on_surface_muted));
                         });
                     ui.add_space(space::M);
                     ui.label(
