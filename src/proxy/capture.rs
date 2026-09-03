@@ -7,7 +7,7 @@ use axum::Json;
 use serde_json::json;
 use std::time::Instant;
 
-/// Maximum stored request body (8 MiB) — prompts can be large.
+/// Maximum stored request body (8 MiB); prompts can be large.
 pub const MAX_BODY: usize = 8 * 1024 * 1024;
 
 /// Capture-only endpoint used as a fake JanitorAI proxy preset.
@@ -37,7 +37,7 @@ pub async fn capture(
     };
     let body_text = String::from_utf8_lossy(&body_bytes).to_string();
 
-    // Reject non-JSON payloads early — they are not chat-completion traffic.
+    // Reject non-JSON payloads early: they are not chat-completion traffic.
     let parsed: serde_json::Value = if body_bytes.is_empty() {
         serde_json::Value::Null
     } else {

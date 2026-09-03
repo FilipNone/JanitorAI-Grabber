@@ -1,7 +1,7 @@
 //! Integration tests:
-//! 1. capture mode — the fake endpoint stores the chat-completion request and
+//! 1. capture mode: the fake endpoint stores the chat-completion request and
 //!    replies with a stub OpenAI success (JanitorAI proxy-preset flow),
-//! 2. forward mode — a canned chat-completion exchange is forwarded upstream
+//! 2. forward mode: a canned chat-completion exchange is forwarded upstream
 //!    and stored on both sides, byte-identical response returned.
 
 use janitorai_grabber::config::Mode;

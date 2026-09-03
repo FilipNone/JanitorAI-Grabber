@@ -1,6 +1,7 @@
 # --- Local-only: never commit these ---
 # Vendored Rust docs (local reference)
 docs/
+design-rules/
 
 # Build artifacts
 /target
@@ -19,6 +20,12 @@ config.local.*
 *.local.toml
 *.key
 *.token
+
+# Local agent info
+AGENTS.md
+ROADMAP.md
+SPEC.md
+TASKS.md
 
 # Development scratch
 *.log
